@@ -1,0 +1,528 @@
+
+import { NextRequest, NextResponse } from "next/server"
+import { getServerAuth } from "@/lib/auth"
+import { z } from "zod"
+
+export const dynamic = "force-dynamic"
+
+const createTreatmentPlanSchema = z.object({
+  patientId: z.string().uuid(),
+  title: z.string(),
+  description: z.string().optional(),
+  priority: z.string().default("intermediate"),
+  notes: z.string().optional(),
+})
+
+// Generate patient-specific treatment plans
+const generateMockTreatmentPlans = (patientId: string) => {
+  const isAliceJohnson = patientId === 'P-2024-0001'
+  
+  if (isAliceJohnson) {
+    // Alice Johnson - specific treatment plans based on her dental conditions
+    return [
+      {
+        id: `plan-${patientId}-1`,
+        planNumber: `TP-${Date.now()}-001`,
+        title: "Emergency Treatment & Comprehensive Restoration",
+        description: "Urgent treatment for acute pulpitis and comprehensive restoration of multiple carious lesions",
+        status: "approved",
+        priority: "emergency",
+        estimatedCost: 45000,
+        estimatedDuration: 720, // 12 hours across multiple visits
+        insuranceEstimate: 25000,
+        patientPortion: 20000,
+        startDate: new Date().toISOString(),
+        targetEndDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        approvedAt: new Date().toISOString(),
+        notes: "Patient has acute pulpitis tooth #19 requiring immediate attention. Multiple caries present requiring comprehensive treatment.",
+        risks: [
+          "Risk of abscess formation if treatment delayed",
+          "Potential complications due to patient's asthma",
+          "Risk of pulp exposure during cavity preparation"
+        ],
+        prerequisites: [
+          "Antibiotic premedication due to asthma",
+          "Pain management protocol",
+          "Patient consent for all procedures"
+        ],
+        phases: [
+          {
+            id: `phase-1-${patientId}`,
+            phaseNumber: 1,
+            title: "Emergency Root Canal Therapy",
+            description: "Immediate treatment for acute pulpitis tooth #19",
+            phase: "emergency",
+            estimatedCost: 18000,
+            estimatedDuration: 180, // 3 hours
+            plannedStartDate: new Date().toISOString(),
+            plannedEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "in_progress",
+            prerequisites: ["Antibiotic premedication", "Local anesthetic"],
+            notes: "Priority treatment to relieve acute pain",
+            completionPercent: 30,
+            phaseItems: [
+              {
+                id: "item-1-1",
+                sequence: 1,
+                toothNumber: "19",
+                surfaces: ["occlusal", "mesial"],
+                estimatedCost: 15000,
+                estimatedDuration: 120,
+                status: "in_progress",
+                notes: "Root canal therapy with temporary filling",
+                treatment: {
+                  id: "t1",
+                  name: "Root Canal Therapy",
+                  treatmentCode: "D3310"
+                }
+              },
+              {
+                id: "item-1-2",
+                sequence: 2,
+                toothNumber: "19",
+                surfaces: [],
+                estimatedCost: 3000,
+                estimatedDuration: 60,
+                status: "planned",
+                notes: "Permanent crown to restore tooth",
+                treatment: {
+                  id: "t2",
+                  name: "Porcelain Crown",
+                  treatmentCode: "D2740"
+                }
+              }
+            ]
+          },
+          {
+            id: `phase-2-${patientId}`,
+            phaseNumber: 2,
+            title: "Restorative Treatment Phase",
+            description: "Address remaining carious lesions",
+            phase: "immediate",
+            estimatedCost: 22000,
+            estimatedDuration: 300, // 5 hours
+            plannedStartDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+            plannedEndDate: new Date(Date.now() + 35 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "planned",
+            prerequisites: ["Phase 1 completion", "Pain-free status"],
+            notes: "Comprehensive restoration of all carious teeth",
+            completionPercent: 0,
+            phaseItems: [
+              {
+                id: "item-2-1",
+                sequence: 1,
+                toothNumber: "18",
+                surfaces: ["occlusal"],
+                estimatedCost: 8000,
+                estimatedDuration: 90,
+                status: "planned",
+                notes: "Large composite restoration for deep caries",
+                treatment: {
+                  id: "t3",
+                  name: "Composite Filling - Large",
+                  treatmentCode: "D2393"
+                }
+              },
+              {
+                id: "item-2-2",
+                sequence: 2,
+                toothNumber: "30",
+                surfaces: ["distal"],
+                estimatedCost: 3500,
+                estimatedDuration: 60,
+                status: "planned",
+                notes: "Small interproximal composite restoration",
+                treatment: {
+                  id: "t4",
+                  name: "Composite Filling - 1 Surface",
+                  treatmentCode: "D2391"
+                }
+              },
+              {
+                id: "item-2-3",
+                sequence: 3,
+                toothNumber: "21",
+                surfaces: ["buccal"],
+                estimatedCost: 4000,
+                estimatedDuration: 75,
+                status: "planned",
+                notes: "Replace old amalgam with composite",
+                treatment: {
+                  id: "t5",
+                  name: "Amalgam Replacement",
+                  treatmentCode: "D2392"
+                }
+              }
+            ]
+          },
+          {
+            id: `phase-3-${patientId}`,
+            phaseNumber: 3,
+            title: "Preventive Care & Maintenance",
+            description: "Professional cleaning and ongoing care plan",
+            phase: "maintenance",
+            estimatedCost: 5000,
+            estimatedDuration: 240, // 4 hours across multiple visits
+            plannedStartDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+            plannedEndDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+            status: "planned",
+            prerequisites: ["All restorative work completed", "Oral hygiene assessment"],
+            notes: "Establish maintenance schedule for long-term oral health",
+            completionPercent: 0,
+            phaseItems: [
+              {
+                id: "item-3-1",
+                sequence: 1,
+                surfaces: [],
+                estimatedCost: 3000,
+                estimatedDuration: 90,
+                status: "planned",
+                notes: "Deep cleaning and oral hygiene instruction",
+                treatment: {
+                  id: "t6",
+                  name: "Scaling & Root Planing",
+                  treatmentCode: "D4341"
+                }
+              },
+              {
+                id: "item-3-2",
+                sequence: 2,
+                surfaces: [],
+                estimatedCost: 2000,
+                estimatedDuration: 60,
+                status: "planned",
+                notes: "3-month recall for maintenance",
+                treatment: {
+                  id: "t7",
+                  name: "Recall Examination",
+                  treatmentCode: "D0120"
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+  
+  // Generic treatment plans for other patients
+  return [
+  {
+    id: `plan-${patientId}-1`,
+    planNumber: `TP-${Date.now()}-001`,
+    title: "Comprehensive Restorative Treatment",
+    description: "Multi-phase treatment plan to address multiple caries and restore oral health",
+    status: "approved",
+    priority: "immediate",
+    estimatedCost: 25000,
+    estimatedDuration: 480, // 8 hours
+    insuranceEstimate: 15000,
+    patientPortion: 10000,
+    startDate: new Date().toISOString(),
+    targetEndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+    approvedAt: new Date().toISOString(),
+    notes: "Patient has multiple caries requiring immediate attention",
+    risks: [
+      "Risk of pulp exposure during cavity preparation",
+      "Potential need for root canal therapy",
+      "Post-operative sensitivity"
+    ],
+    prerequisites: [
+      "Complete oral hygiene education",
+      "Pre-treatment antibiotics if indicated",
+      "Patient consent for all procedures"
+    ],
+    phases: [
+      {
+        id: `phase-1-${patientId}`,
+        phaseNumber: 1,
+        title: "Emergency and Pain Management",
+        description: "Address urgent dental issues causing pain or discomfort",
+        phase: "emergency",
+        estimatedCost: 8000,
+        estimatedDuration: 120,
+        plannedStartDate: new Date().toISOString(),
+        plannedEndDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "completed",
+        prerequisites: ["Pain assessment", "X-ray evaluation"],
+        notes: "Focus on teeth causing acute pain",
+        completionPercent: 100,
+        phaseItems: [
+          {
+            id: "item-1-1",
+            sequence: 1,
+            toothNumber: "19",
+            surfaces: ["occlusal", "mesial"],
+            estimatedCost: 3500,
+            estimatedDuration: 60,
+            status: "completed",
+            notes: "Large occlusal-mesial composite restoration",
+            treatment: {
+              id: "t1",
+              name: "Composite Filling - 2 Surface",
+              treatmentCode: "D2392"
+            }
+          },
+          {
+            id: "item-1-2",
+            sequence: 2,
+            toothNumber: "30",
+            surfaces: ["occlusal"],
+            estimatedCost: 2500,
+            estimatedDuration: 45,
+            status: "completed",
+            notes: "Single surface composite restoration",
+            treatment: {
+              id: "t2",
+              name: "Composite Filling - 1 Surface",
+              treatmentCode: "D2391"
+            }
+          }
+        ]
+      },
+      {
+        id: `phase-2-${patientId}`,
+        phaseNumber: 2,
+        title: "Comprehensive Restorative Care",
+        description: "Address remaining carious lesions and restore function",
+        phase: "immediate",
+        estimatedCost: 12000,
+        estimatedDuration: 240,
+        plannedStartDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+        plannedEndDate: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "in_progress",
+        prerequisites: ["Phase 1 completion", "Pain-free status"],
+        notes: "Systematic restoration of all carious teeth",
+        completionPercent: 35,
+        phaseItems: [
+          {
+            id: "item-2-1",
+            sequence: 1,
+            toothNumber: "3",
+            surfaces: ["mesial", "occlusal", "distal"],
+            estimatedCost: 4500,
+            estimatedDuration: 75,
+            status: "in_progress",
+            notes: "Large 3-surface restoration",
+            treatment: {
+              id: "t3",
+              name: "Composite Filling - 3 Surface",
+              treatmentCode: "D2393"
+            }
+          },
+          {
+            id: "item-2-2",
+            sequence: 2,
+            toothNumber: "14",
+            surfaces: ["occlusal", "buccal"],
+            estimatedCost: 3500,
+            estimatedDuration: 60,
+            status: "planned",
+            notes: "Two surface posterior restoration",
+            treatment: {
+              id: "t4",
+              name: "Composite Filling - 2 Surface",
+              treatmentCode: "D2392"
+            }
+          }
+        ]
+      },
+      {
+        id: `phase-3-${patientId}`,
+        phaseNumber: 3,
+        title: "Preventive Care and Maintenance",
+        description: "Establish preventive care routine and ongoing maintenance",
+        phase: "maintenance",
+        estimatedCost: 5000,
+        estimatedDuration: 120,
+        plannedStartDate: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+        plannedEndDate: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "planned",
+        prerequisites: ["All restorative work completed", "Oral hygiene assessment"],
+        notes: "Focus on long-term oral health maintenance",
+        completionPercent: 0,
+        phaseItems: [
+          {
+            id: "item-3-1",
+            sequence: 1,
+            surfaces: [],
+            estimatedCost: 2500,
+            estimatedDuration: 60,
+            status: "planned",
+            notes: "Professional cleaning and fluoride treatment",
+            treatment: {
+              id: "t5",
+              name: "Prophylaxis - Adult",
+              treatmentCode: "D1110"
+            }
+          },
+          {
+            id: "item-3-2",
+            sequence: 2,
+            surfaces: [],
+            estimatedCost: 2500,
+            estimatedDuration: 60,
+            status: "planned",
+            notes: "6-month recall appointment",
+            treatment: {
+              id: "t6",
+              name: "Recall Examination",
+              treatmentCode: "D0120"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    id: `plan-${patientId}-2`,
+    planNumber: `TP-${Date.now()}-002`,
+    title: "Routine Preventive Care",
+    description: "Standard preventive care and maintenance for healthy patients",
+    status: "active",
+    priority: "maintenance",
+    estimatedCost: 5000,
+    estimatedDuration: 120,
+    insuranceEstimate: 4000,
+    patientPortion: 1000,
+    startDate: new Date().toISOString(),
+    targetEndDate: new Date(Date.now() + 180 * 24 * 60 * 60 * 1000).toISOString(),
+    notes: "Regular preventive care to maintain oral health",
+    risks: ["Minimal risks associated with routine care"],
+    prerequisites: ["Current oral health assessment"],
+    phases: [
+      {
+        id: `phase-prev-${patientId}`,
+        phaseNumber: 1,
+        title: "Preventive Care Package",
+        description: "Comprehensive preventive dental care",
+        phase: "maintenance",
+        estimatedCost: 5000,
+        estimatedDuration: 120,
+        plannedStartDate: new Date().toISOString(),
+        plannedEndDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+        status: "in_progress",
+        prerequisites: [],
+        notes: "Standard preventive care protocol",
+        completionPercent: 50,
+        phaseItems: [
+          {
+            id: "item-prev-1",
+            sequence: 1,
+            surfaces: [],
+            estimatedCost: 3000,
+            estimatedDuration: 60,
+            status: "completed",
+            notes: "Professional dental cleaning completed",
+            treatment: {
+              id: "t7",
+              name: "Prophylaxis - Adult",
+              treatmentCode: "D1110"
+            }
+          },
+          {
+            id: "item-prev-2",
+            sequence: 2,
+            surfaces: [],
+            estimatedCost: 2000,
+            estimatedDuration: 60,
+            status: "planned",
+            notes: "Comprehensive oral examination",
+            treatment: {
+              id: "t8",
+              name: "Comprehensive Oral Evaluation",
+              treatmentCode: "D0150"
+            }
+          }
+        ]
+      }
+    ]
+  }
+  ]
+}
+
+// GET /api/treatment-plans
+export async function GET(request: NextRequest) {
+  try {
+    // Temporarily disable auth for demonstration
+    /*
+    const session = await getServerAuth()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+    */
+
+    const { searchParams } = new URL(request.url)
+    const patientId = searchParams.get('patientId')
+
+    if (!patientId) {
+      return NextResponse.json({ error: "Patient ID is required" }, { status: 400 })
+    }
+
+    // Generate mock treatment plans
+    const mockTreatmentPlans = generateMockTreatmentPlans(patientId)
+
+    return NextResponse.json({
+      data: {
+        treatmentPlans: mockTreatmentPlans
+      }
+    })
+  } catch (error) {
+    console.error("Error fetching treatment plans:", error)
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
+
+// POST /api/treatment-plans
+export async function POST(request: NextRequest) {
+  try {
+    const session = await getServerAuth()
+    if (!session) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+    }
+
+    if (!['dentist', 'admin'].includes(session.user.role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    const body = await request.json()
+    const validatedData = createTreatmentPlanSchema.parse(body)
+
+    // Create mock treatment plan
+    const mockTreatmentPlan = {
+      id: `plan-${Date.now()}`,
+      planNumber: `TP-${Date.now()}-NEW`,
+      ...validatedData,
+      status: "draft",
+      estimatedCost: 0,
+      estimatedDuration: 0,
+      insuranceEstimate: 0,
+      patientPortion: 0,
+      risks: [],
+      prerequisites: [],
+      phases: [],
+      createdAt: new Date().toISOString()
+    }
+
+    return NextResponse.json({
+      data: {
+        treatmentPlan: mockTreatmentPlan
+      }
+    }, { status: 201 })
+  } catch (error) {
+    console.error("Error creating treatment plan:", error)
+    if (error instanceof z.ZodError) {
+      return NextResponse.json(
+        { error: "Invalid data", details: error.errors },
+        { status: 400 }
+      )
+    }
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    )
+  }
+}
